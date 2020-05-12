@@ -6,8 +6,8 @@ library(tidyr)
 library(ggplot2)
 
 # dir()
-dat <- readxl::read_excel("Data til dag for deteksjonsfrekvens.xlsx", col_types = "text")
-colnames(dat)[1] <- "Sample_type"
+dat <- readxl::read_excel("Data til dag for deteksjonsfrekvens 2019.xlsx", col_types = "text")
+colnames(dat)[[1]] <- "Sample_type"
 # colnames(dat)
 
 #
@@ -17,10 +17,7 @@ colnames(dat)[1] <- "Sample_type"
 # Parameters
 param_levels <- colnames(dat)[-1]
 # Sample types
-type_levels <- dat$Sample_type
-sel <- !(type_levels == lag(type_levels))
-sel[1] <- TRUE
-type_levels <- type_levels[sel]
+type_levels <- unique(dat$Sample_type)
 
 #
 # Reshape data (narrow/tall)
