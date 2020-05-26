@@ -65,7 +65,37 @@ ggplot(df_detect %>% mutate(Param = factor(Param, levels = rev(param_levels))), 
   theme(axis.text.y = element_text(size = 6)) +
   labs(x = "Sample type", y = "Parameter")
 
-ggsave("01 Detection percentage.png", width = 9, height = 12, dpi = 500)
+ggsave("01 Detection percentage 2019.png", width = 9, height = 18, dpi = 500)
+
+#
+# Divide plot in two parts
+#
+
+list_params <- list(
+  param_levels[1:85],
+  param_levels[86:length(param_levels)]
+)
+
+for (i in 1:2){
+
+    ggplot(df_detect %>%
+           filter(Param %in% list_params[[i]]) %>%
+           mutate(Param = factor(Param, levels = rev(param_levels))), # set reverse order, in order to get first values on top
+         aes(Sample_type, Param, fill = Detect_group)) +
+    geom_raster() +
+    scale_fill_brewer("Detection", palette = "Oranges", na.value = "grey65") +
+    theme(axis.text.x = element_text(hjust = 0, angle = -60, size = 8),
+          axis.text.y = element_text(size = 8),
+          axis.title = element_blank()) +
+    labs(x = "Sample type", y = "Parameter")
+  
+  filename <- paste0("01 Detection percentage 2019 page ", i, ".png")
+  
+  ggsave(filename, width = 9, height = 12, dpi = 500)
+  
+}
+
+
 
 #
 # Make table
@@ -75,4 +105,4 @@ table_detect <- df_detect %>%
   spread(key = Sample_type, value = Detect_group)
 
 # Save
-openxlsx::write.xlsx(table_detect, "01 Deteksjonsfrekvens.xlsx")
+openxlsx::write.xlsx(table_detect, "01 Deteksjonsfrekvens 2019.xlsx")
