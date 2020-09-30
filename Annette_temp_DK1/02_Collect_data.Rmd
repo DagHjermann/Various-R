@@ -2,7 +2,11 @@
 title: "02_Collect_data"
 author: "DHJ"
 date: "30 9 2020"
-output: html_document
+output: 
+  html_document:
+    keep_md: true
+    toc: true
+    toc_float: true
 ---
 
 Extract surface and 4-5 temperature for Dk1 (Steilene) in Indre Oslofjord.   
@@ -13,8 +17,9 @@ K:/Avdeling/214-Oseanografi/DHJ/Data/Oslofjord_indre
 
 
 ## 1. Libraries  
-```{r}
+```{r, message=FALSE, warning=FALSE, result = 'hide'}
 
+library(ggplot2)
 library(dplyr)
 library(readxl)
 library(lubridate)
@@ -133,8 +138,9 @@ gg +
   facet_grid(rows = vars(Source))
 
 ```
+  
 ## 5. Pick Dk1 surface + 5 m data   
-
+  
 ### Surface  
 * Through 2009: 0 m only   
 * 2010-2012: 0.5 m, plus sometimes 1 m. Pick 0.5 m  
