@@ -1,0 +1,157 @@
+---
+title: "01_Collect_data"
+author: "DHJ"
+date: "30 9 2020"
+output: html_document
+---
+
+## 1. Libraries  
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(sp)        # SpatialPoints(), CRS(), spTransform()
+
+crs_longlat <- "+proj=longlat"
+crs_utm <- "+proj=utm +zone=33 +ellps=WGS84 +datum=WGS84 +units=m"
+
+library(niRvana)
+
+```
+
+### b. Password  
+```{r}
+
+# Set username + password
+set_credentials()
+
+```
+
+
+
+## 2. NIVA data     
+
+### a. Data 1933-2011  
+```{r, results='hold'}
+
+# fn <- "K:/Avdeling/214-Oseanografi/DHJ/Data/Oslofjord_indre/Oslofjord_indre_collected_03.06.2016.xlsx"
+# dat1a <- read_excel(fn)
+
+fn <- "//niva-of5/osl-userdata$/DHJ/Documents/seksjon 214/Klima-SIS WP3 Reanalysis of long-term data series/R data oslofjord.RData"
+load(fn)   # data.oslo
+cat("data.oslo:", nrow(data.oslo), "rows \n")
+
+dat_dk1 <- data.oslo %>% 
+  filter(Station %in% "Dk1" & !is.na(Temperature)) %>%
+  mutate(Time = lubridate::ymd_hms(paste(Year, Month, Day, "00:00:00"))) %>%
+  arrange(Year, DayInYear, Depth)
+cat("dat_dk1:", nrow(dat_dk1), "rows \n\n")
+
+dat_dk1 %>%
+  distinct(Year, Month, Depth) %>%
+  count(Year, Depth) %>%
+  ggplot(aes(Year, Depth, color = n)) +
+  geom_tile() +
+  labs(title = "Data by depth, Dk1")
+
+cat("Surface data (<= 1 meter) at Dk1 (start/end of time series): \n")
+dat_dk1 %>%
+  filter(Depth <= 1 & Year < 1940) %>%
+  xtabs(~Year + Month, .)
+dat_dk1 %>%
+  filter(Depth <= 1 & Year > 2000) %>%
+  xtabs(~Year + Month, .)
+
+
+
+```
+
+### b. From NIVAbasen  
+
+#### Station(s)  
+```{r}
+
+# debugonce(get_projects)
+df_projects <- get_projects()   # we call it 'df_projects' (the default name used by 'get_stations_from_project')
+
+grep("indre oslo", df_projects$PROJECT_NAME, value = TRUE, ignore.case = TRUE) 
+
+# "Indre Oslofjord 2015-" 
+
+df_proj_stations1 <- niRvana::get_nivabase_data(
+  "select STATION_ID, STATION_CODE, STATION_NAME, PROJECT_ID from NIVADATABASE.PROJECTS_STATIONS where lower(STATION_NAME) like '%dk1%'"
+)
+df_proj_stations2 <- niRvana::get_nivabase_data(
+  "select STATION_ID, STATION_CODE, STATION_NAME, PROJECT_ID from NIVADATABASE.PROJECTS_STATIONS where lower(STATION_NAME) like '%steilene%'"
+) %>%
+  filter(grepl("dk1", STATION_CODE, ignore.case = TRUE))
+
+station_id <- c(
+  unique(df_proj_stations1$STATION_ID),
+  unique(df_proj_stations2$STATION_ID)
+)
+cat("station_id:", station_id, "values \n")
+
+df_stations <- niRvana::get_nivabase_selection("STATION_ID, GEOM_REF_ID", "STATIONS", "STATION_ID", station_id)
+cat("df_stations:", nrow(df_stations), "rows \n")
+
+```
+
+#### Samples  
+```{r}
+
+# get_nivabase_data("select TABLE_NAME from ALL_TAB_COLUMNS where OWNER = 'NIVADATABASE' and column_name = 'STATION_ID'")  
+
+df_samples <- niRvana::get_nivabase_selection(
+  "WATER_SAMPLE_ID, STATION_ID, SAMPLE_DATE, DEPTH1, DEPTH2, REMARK", "WATER_SAMPLES", "STATION_ID", station_id)
+
+cat("df_samples:", nrow(df_samples), "rows \n")
+
+```
+
+#### Chemistry values   
+All parameters, all depths (1-2 minutes) 
+```{r}
+
+# For test:
+# sample_id <- df_samples %>% dplyr::sample_n(size = 100) %>% pull(WATER_SAMPLE_ID)
+
+sample_id <- df_samples %>% pull(WATER_SAMPLE_ID)
+
+df_waterchem <- niRvana::get_nivabase_selection(
+  "WATER_SAMPLE_ID, METHOD_ID, VALUE, FLAG1", "WATER_CHEMISTRY_VALUES", "WATER_SAMPLE_ID", sample_id)
+cat("df_waterchem:", nrow(df_waterchem), "rows \n")
+
+df_methods <- niRvana::get_nivabase_selection(
+  "METHOD_ID, NAME, UNIT, LABORATORY, MATRIX", "METHOD_DEFINITIONS", "METHOD_ID", df_waterchem$METHOD_ID %>% unique())
+
+
+
+```
+
+#### Put data together  
+```{r}
+
+df1 <- df_waterchem %>%
+  left_join(df_methods) %>%
+  left_join(df_samples) %>%
+  left_join(df_stations) %>%
+  mutate(Year = year(SAMPLE_DATE)) %>%
+  select(STATION_ID, Year, SAMPLE_DATE, DEPTH1, DEPTH2, NAME, VALUE, FLAG1, UNIT, everything()) 
+cat("df1:", nrow(df1), "rows \n")
+  
+
+```
+
+#### Tables   
+Data only until 2014!   
+```{r}
+
+xtabs(~NAME, df1)
+xtabs(~NAME + Year, df1 %>% filter(NAME %in% c("Temp", "Temperatur", "TEMPR")))
+
+```
+
+
+
