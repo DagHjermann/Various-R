@@ -5,7 +5,11 @@ date: "30 9 2020"
 output: html_document
 ---
 
-Note: this script utilizes data from project "Oslofjord_indre"   
+Extract surface and 4-5 temperature for Dk1 (Steilene) in Indre Oslofjord.   
+  
+Note: this script utilizes data from project "Oslofjord_indre". Both these data and the results form this script have been put here:  
+K:/Avdeling/214-Oseanografi/DHJ/Data/Oslofjord_indre  
+  
 
 
 ## 1. Libraries  
@@ -23,7 +27,7 @@ library(viridis)
 ## 2. Read data from project "Oslofjord_indre"  
 ```{r}
 
-fn <- "C:/Data/seksjon 214/Oslofjord_indre/Produced_data/34_IO_CTD_combined.rds"
+fn <- "K:/Avdeling/214-Oseanografi/DHJ/Data/Oslofjord_indre/Indre_Oslofjord_temp_salt_1933-2019.rds"
 dat <- readRDS(fn)
 
 cat("dat:", nrow(dat), "lines \n")
@@ -277,7 +281,12 @@ notes_for_excel <- tribble(
   "* Through 1960: 5 m only",   
   "* 1962-2012: 4 m, plus sometimes 5 m. Pick 4 m",   
   "* 2013-2014: Both 4 and 5 m. Pick 5 m",   
-  "* 2015-2019: 5 m, plus sometimes 4 m. Pick 5 m"
+  "* 2015-2019: 5 m, plus sometimes 4 m. Pick 5 m",
+  NA,
+  "These data are based on",
+  "K:/Avdeling/214-Oseanografi/DHJ/Data/Oslofjord_indre/Indre_Oslofjord_temp_salt_1933-2019.rds",
+  "and were produced by DHJ using",
+  "C:/Data/Various-R/Annette_temp_DK1/02_Collect_data.Rmd"
 )
 
 list(
