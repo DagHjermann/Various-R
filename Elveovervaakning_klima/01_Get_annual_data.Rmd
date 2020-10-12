@@ -1,0 +1,429 @@
+---
+title: "01_Get_annual_data"
+author: "DHJ"
+date: "4 11 2019"
+output: 
+  html_document:
+    keep_md: true
+    toc: true
+    toc_float: true
+---
+    
+*Air temperature and precipitation for a bunch of stations*    
+* Part 1- Username  
+* Parts 2-3 - Get annual mean air temperature and precipitation for a bunch of stations and perform Theil-Sen regression
+* Part 4 - Find stations on interactive map  
+* Part 5 - Get monthly data
+    
+Technically:  
+* Based on examples from https://frost.met.no/ex_userquest  
+* NOTE: Some nice function for finding stations in part 4  
+* Also see https://github.com/metno/gibson and https://github.com/metno/esd 
+(not used here, tested elsewhere)
+   
+Also see station map here: http://eklima.met.no/Help/Stations/toDay/all/no_Stations.html  
+   
+**Important note:** for monthly data (part 5), there are two offsets for each series: PT0H and PT6H. Which to use?  
+- For precipitation "sum(precipitation_amount P1M)", we use PT6H	(standard sampling period for precipitation is 07-06 UTC)  
+- For temperature "mean(air_temperature P1M)", we use PT0H	 
+Source: https://frost.met.no/dataclarifications.html 
+
+
+## Years  
+```{r}
+year1 <- 1980
+year2 <- 2019
+
+```
+
+
+## 0. Libraries  
+```{r setup, include=FALSE}
+# install.packages("bitops")
+# install.packages("RCurl")
+# install.packages("rkt")
+library(RCurl)      # Downloading from ftp using getURL()
+library(jsonlite)   # Handling json
+library(dplyr)      # Functions %>%, group_by(), summarise() and more
+library(purrr)      # Function map()
+library(lubridate)  # Functions year(), month(), ymd_hms(), ymd()
+library(rkt)        # Theil -Sen Regression
+
+source("01fun_Get_annual_data.R")
+source("01_Password.R")
+
+# Not really necessary
+library(ggplot2)    # Plotting
+
+```
+
+## 1. Username
+Stores your username in an object we call 'opts' (is used later)
+* How to get username - see   
+   https://frost.met.no/concepts#getting_started
+
+```{r}
+
+opts <- curlOptions(
+  userpwd = txt_pwd, 
+  ftp.filemethod = "singlecwd")
+
+```
+
+
+## 2. Example station: Melsom   
+
+### a. Station identifier
+```{r}
+stid <- "SN18700"
+```
+
+
+### b. Avaliable series
+
+```{r}
+df_info <- get_series_from_station(stid)
+# View(df_info)
+head(df_info)
+
+```
+
+#### b1. Available time resolutions - from 1 hour (PT1H) to 1 year (P1Y)
+```{r}
+table(df_info$timeResolution)
+```
+
+#### b2. Available year-level series  
+```{r}
+subset(df_info, timeResolution == "P1Y")$elementId
+
+```
+
+### c. Get temperature data from Oslo Blindern
+```{r}
+# year1, year2, parameter, station
+# debugonce(get_data)
+# debugonce(get_data_i)
+df <- get_data(year1, year2, "mean(air_temperature P1Y)", "SN18700")
+head(df)
+```
+
+### d. Note: One can also get data for several stations at once!  
+This could be utilized in part 2 (but it is not)
+```{r}
+df <- get_data(year1, year2, "mean(air_temperature P1Y)", "SN18700,SN50540")
+head(df)
+```
+
+### e. Theil-Sen regression using function  
+```{r}
+a <- get_theil_sen(year1, year2, "mean(air_temperature P1Y)", "SN27450")
+b <- get_theil_sen(year1, year2, "sum(precipitation_amount P1Y)", "SN18700")
+
+bind_rows(a$statistics, b$statistics)
+```
+
+
+## 3. Get trends    
+See part 4 for how to find stations
+
+### a. Temperature
+```{r}
+x <- c(700,18700,19710,27470,27470,36560,39040,44560,44560,46910,52290,
+       58070,64550,69100,69100,85380,89350,93140,96800,99370)
+stations_temp <- paste0("SN", x)
+
+get_theil_sen_safe <- safely(get_theil_sen)  # generates a list with $result and $error
+
+result_list1 <- stations_temp %>% map(~get_theil_sen_safe(year1, year2, "mean(air_temperature P1Y)", .))
+not_ok <- result_list1 %>% map_lgl(is.null)
+mean(not_ok)   # Should be zero!
+
+result_list2 <- transpose(result_list1)$result  # Go down to 1st level of list
+result_temp <- transpose(result_list2)$statistics %>% bind_rows()  # Go down to 1st level of list
+
+# df_temp <- stations_temp[1:2] %>% map_df(~get_theil_sen(year1, year2, "mean(air_temperature P1Y)", .))
+result_temp
+
+```
+
+#### Plot  
+```{r}
+data_plot <- transpose(result_list2)$data %>% bind_rows()
+
+# data_plot
+
+ggplot(data_plot, aes(Year, value)) +
+  geom_smooth(method = "lm") +
+  geom_point() +
+  facet_wrap(vars(Station), scales = "free_y")
+
+```
+
+### b. Precipitation
+```{r}
+x <- c(3780,18700,19710,30000,30260,36560,39040,43360,44080,
+       46850,51250,57480,63530,66210,68270,78850,89350,93140,96970,99500)
+
+stations_prec <- paste0("SN", x)
+
+result_list1 <- stations_prec %>% map(~get_theil_sen_safe(year1, year2, "sum(precipitation_amount P1Y)", .))
+not_ok <- result_list1 %>% map_lgl(is.null)
+mean(not_ok)   # Should be zero!
+
+result_list2 <- transpose(result_list1)$result  # Go down to 1st level of list
+result_prec <- transpose(result_list2)$result %>% bind_rows()
+
+result_prec
+
+```
+
+#### Plot  
+```{r}
+data_plot <- transpose(result_list2)$data %>% bind_rows()
+
+# data_plot
+
+ggplot(data_plot, aes(Year, value)) +
+  geom_smooth(method = "lm") +
+  geom_point() +
+  facet_wrap(vars(Station), scales = "free_y")
+
+
+```
+
+### c. Save  
+```{r}
+res <- list(Temperature = result_temp, Precipitation = result_prec)
+
+openxlsx::write.xlsx(
+  res, 
+  paste0(
+    "Data/Elevoverv_trends_climate_", year1, "-", year2, ".xlsx (script 01).xlsx"
+    )
+)
+
+```
+
+
+## 4. Check available stations  
+
+### a. Check available temperature series  
+Overlapping wholly or partly with this period
+```{r}
+df <- get_station_from_parameter("mean(air_temperature P1Y)", 2016, 2017)
+head(df)
+```
+
+### b. Get information on station, incl. coordinates  
+```{r}
+# A single string
+df_station <- get_station_meta("SN44190,SN27450")
+df_station
+
+# A vector of strings
+df_station <- get_station_meta(c("SN44190","SN27450"))
+df_station
+
+# A vector of strings, including ":0"
+df_station <- get_station_meta(c("SN31660:0", "SN40250:0"))
+df_station
+
+# Feed it with the output of previous chunk. Note that only "SN" stations are used
+df_station <- get_station_meta(df$sourceId)
+nrow(df_station)
+
+```
+
+
+### c. Show one station on Norgeskart
+
+```{r}
+if (interactive()){
+  show_norgeskart(df_station, 1)   # station number one in file
+  # OR vector
+  show_norgeskart(c(60, 11))
+  # OR two values
+  show_norgeskart(60, 11)
+}
+```
+
+### d. Show stations on leaflet map
+
+```{r}
+
+library(leaflet)
+
+df_station <- df_station %>%
+  mutate(Popuptext = 
+           paste0(id, "<BR>",
+                  "<B>", shortName, "</B><BR>",
+                  "M.a.s.l. = ", masl, "<BR>",
+                  "valid from = ", validFrom, "<BR>",
+                  "Coor.: ", round(Long, 4), ", ", round(Lat, 4))
+         )
+
+leaflet() %>%
+  addTiles() %>%
+  addMarkers(lng = df_station$Long, lat = df_station$Lat,
+             popup = df_station$Popuptext)
+
+```
+
+
+## 5. Get monthly data for last year  
+For year2, or earlier if data stops earlier  
+
+### a. Available month-level series  
+```{r}
+subset(df_info, timeResolution == "P1M" & grepl("temp", elementId))$elementId
+#  "mean(air_temperature P1M)"
+subset(df_info, timeResolution == "P1M" & grepl("prec", elementId))$elementId
+#  "sum(precipitation_amount P1M)" 
+
+```
+### b. Test   
+Not offsets used. See "important note" at top of this document  
+```{r}
+# test
+if (FALSE){
+  get_data(year2, year2, "mean(air_temperature P1M)", "SN18700") %>%
+    filter(timeOffset == "PT0H")
+  
+  get_data_safe <- safely(get_data)
+  
+  x <- c(700,18700,19710,27470,27470,36560,39040,44560,44560,46910,52290,
+         58070,64550,69100,69100,85380,89350,93140,96800,99370)
+  stations_temp <- paste0("SN", x)
+  
+  data_list <- stations_temp %>% 
+    map(~get_data_safe(year2, year2, "mean(air_temperature P1M)", .))
+  # Which ones are without error?
+  ok <- data_list %>% map_lgl(~is.null(.$error))
+  
+  data_temp <- transpose(data_list[ok])$result %>%     # Get "result" from those that are ok
+    bind_rows() %>%
+    filter(timeOffset == "PT0H") %>%                   # We want this offset (see comment on offsets)
+    mutate(Station = sub(":0", "", sourceId, fixed = TRUE))
+  
+  # Check data
+  ggplot(data_temp, aes(referenceTime, value)) +
+    geom_point() + geom_line() +
+    facet_wrap(vars(Station))
+  
+}
+
+```
+
+
+### c. Function  
+```{r}
+#
+# Get monthly data for years given
+#
+get_monthly_data <- function(...){
+  result <- get_data(...)
+  if (grepl("precipitation", result$elementId[1])){
+    result <- result %>%
+      filter(timeOffset == "PT6H")
+  } else {
+    result <- result %>%
+      filter(timeOffset == "PT0H")
+  }
+  result <- result %>%
+    mutate(Station = sub(":0", "", sourceId, fixed = TRUE),
+           Year = lubridate::year(referenceTime),
+           Month = lubridate::month(referenceTime)) %>%
+    select(Station, Parameter, Year, Month, value,	unit,
+           timeOffset,	timeResolution,	timeSeriesId,	
+           performanceCategory,	exposureCategory,	qualityCode)
+  result
+  }
+
+#
+# Get monthly data for last "full" year given
+#
+get_monthly_data_lastyear <- function(...){
+  result <- get_monthly_data(...)
+  last_year <- result %>%
+    count(Year) %>%
+    filter(n %in% 12) %>%
+    tail(1) %>%
+    pull(Year)
+  result %>%
+    filter(Year %in% last_year)
+}
+
+get_monthly_data_lastyear_safe <- safely(get_monthly_data_lastyear)
+
+# test
+if (FALSE){
+  get_monthly_data(year2, year2, "mean(air_temperature P1M)", "SN18700")
+  get_monthly_data_lastyear(year2-10, year2, "mean(air_temperature P1M)", "SN18700")
+  get_monthly_data_lastyear(year2-10, year2, "sum(precipitation_amount P1M)", "SN30260")
+  }
+```
+
+
+### d. Temperature  
+Last year for each station (given they have data at least after 1998)   
+```{r}
+
+x <- c(700,18700,19710,27470,27470,36560,39040,44560,44560,46910,52290,
+       58070,64550,69100,69100,85380,89350,93140,96800,99370)
+stations <- paste0("SN", x)
+
+data_list <- stations %>% 
+  map(~get_monthly_data_lastyear_safe(1998, year2, "mean(air_temperature P1M)", .))
+
+# Which ones are without error?
+ok <- data_list %>% map_lgl(~is.null(.$error))
+  
+data_temp <- transpose(data_list[ok])$result %>%     # Get "result" from those that are ok
+  bind_rows()
+
+# Check data
+ggplot(data_temp, aes(Month, value)) +
+  geom_point() + geom_line() +
+  facet_wrap(vars(Station))
+
+
+```
+
+### e. Precipitation   
+Last year for each station (given they have data at least after 1998)   
+```{r}
+x <- c(3780,18700,19710,30000,30260,36560,39040,43360,44080,
+       46850,51250,57480,63530,66210,68270,78850,89350,93140,96970,99500)
+stations <- paste0("SN", x)
+
+data_list <- stations %>% 
+  map(~get_monthly_data_lastyear_safe(1998, year2, "sum(precipitation_amount P1M)", .))
+
+# Which ones are without error?
+ok <- data_list %>% map_lgl(~is.null(.$error))
+  
+data_prec <- transpose(data_list[ok])$result %>%     # Get "result" from those that are ok
+  bind_rows()
+
+# Check data
+ggplot(data_prec, aes(Month, value)) +
+  geom_point() + geom_line() +
+  facet_wrap(vars(Station))
+
+
+```
+
+### f. Save
+```{r}
+
+openxlsx::write.xlsx(
+  list(Temperature = data_temp, Precipitation = data_prec),
+  paste0("Data/Monthly temp and prec in last year with data - ", year2, " (script 01).xlsx")
+)
+  
+
+```
+
+
+
