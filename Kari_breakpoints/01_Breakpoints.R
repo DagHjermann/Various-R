@@ -3,7 +3,11 @@
 # Har fulgt
 #   https://rpubs.com/MarkusLoew/12164
 
-# 1. Libraries  
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
+#
+# 1. Libraries  ----
+#
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 
 # install.packages("segmented")
 library(segmented)
@@ -11,6 +15,12 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(purrr)
+
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
+#
+# 2. Data ----
+#
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 
 dat <- read.delim("Input_data/LWTP.txt")
 
@@ -36,9 +46,12 @@ ggplot(dat2, aes(Year, TotP, group = monitoringSiteIdentifier, color = seriesSpa
 #
 identifiers <- dat$monitoringSiteIdentifier
 
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 #
-# En relativt tilfeldig serie   
+# 3. En relativt tilfeldig serie  ---- 
 #
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
+
 dat2_pick <- dat2 %>% filter(monitoringSiteIdentifier == identifiers[6])
 
 ggplot(dat2_pick, aes(Year, TotP, group = monitoringSiteIdentifier, color = seriesSpan)) +
@@ -46,9 +59,11 @@ ggplot(dat2_pick, aes(Year, TotP, group = monitoringSiteIdentifier, color = seri
   geom_point()
 
 
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 #
-# Eksempel i https://rpubs.com/MarkusLoew/12164
+# 4. Eksempel i https://rpubs.com/MarkusLoew/12164
 #
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 
 # create a linear model
 my.lm <- lm(TotP ~ Year, data = dat2_pick)
@@ -106,9 +121,14 @@ test1
 str(test1)
 test2 
 str(test2)
+
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 # 
-# selgmented - velger automatisk antall breakpoints
+# 4. selgmented -----
+#    velger automatisk antall breakpoints
 # 
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
+
 my.selg <- selgmented(my.lm, Kmax = 2)
 summary(my.selg)
 
@@ -138,9 +158,12 @@ test <- identifiers[5:6] %>%
 str(test, 1)
 str(test[[1]], 1)
 
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 #
-# Kjør alle (<1 minutt) 
+# 5. Kjør alle (<1 minutt) ----
 #
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
+
 sink("01_Output_selgmented.txt")     # sender output (som ellers ville gått til skjerm) til denne fila
 model_list <- purrr::map(identifiers, get_model, data = dat2)
 model_list <- set_names(model_list, identifiers)
@@ -152,9 +175,13 @@ str(model_list[1:10],1)
 model_list[[1]]$psi  # = NULL fordi det ikke e4r noen knekkpunkter
 model_list[[6]]$psi  # en rad per knekkpunkt
 
+
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 #
-# Antall knekkpunkt
+# 6. Antall knekkpunkt ----
 #
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
+
 get_number_of_breakpoints <- function(model){
   ifelse(
     is.null(model$psi),
@@ -173,9 +200,12 @@ df_number_of_breakpoints <- tibble(
   n_breaks = number_of_breakpoints
 )
 
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 #
-# Verdi av knekkpunkt(er)
+# 7. Verdi av knekkpunkt(er) ----
 #
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
+
 get_breakpoints <- function(model){
   result <- 
     tibble(Brk1 = as.numeric(NA), 
@@ -205,26 +235,37 @@ df_breakpoints_value$monitoringSiteIdentifier <- names(model_list)
 
 head(df_breakpoints_value)
 
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 #
-# Sett sammen
+# 8. Sett sammen resultater fra 5,6,7 ----  
 #
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 
 df_breakpoints <- dat %>%
   select(waterBodyCategory:seriesSpan) %>%
   left_join(df_number_of_breakpoints) %>%
   left_join(df_breakpoints_value)
 
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
 #
-# PLott knekkpunkt
+# 9. Plott knekkpunkt ----
 #
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
+
 ggplot(df_breakpoints, aes(monitoringSiteIdentifier, color = countryCode)) +
   geom_pointrange(aes(y = Brk1, ymin = Brk1 - Brk1_SE, ymax = Brk1 + Brk1_SE)) +
   geom_pointrange(aes(y = Brk2, ymin = Brk2 - Brk2_SE, ymax = Brk2 + Brk1_SE)) +
   theme(axis.text.y = element_text(size = 6)) +
   coord_flip()
 
-# Lagre
+ggsave("01_df_breakpoints.png", width = 6, height = 12, dpi = 400)
+
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
+#
+# 10. Lagre ----  
+#
+#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o#o
+
 writexl::write_xlsx(df_breakpoints, "01_df_breakpoints.xlsx")
 
 
- # get_number_of_breakpoints(model_list[[6]])
