@@ -6,7 +6,7 @@ library(tidyr)
 library(ggplot2)
 
 # dir()
-dat <- readxl::read_excel("Data til dag for deteksjonsfrekvens.xlsx", col_types = "text")
+dat <- readxl::read_excel("Data til dag for deteksjonsfrekvens_2018.xlsx", col_types = "text")
 colnames(dat)[1] <- "Sample_type"
 # colnames(dat)
 
@@ -68,7 +68,7 @@ ggplot(df_detect %>% mutate(Param = factor(Param, levels = rev(param_levels))), 
   theme(axis.text.y = element_text(size = 6)) +
   labs(x = "Sample type", y = "Parameter")
 
-ggsave("01 Detection percentage.png", width = 9, height = 12, dpi = 500)
+ggsave("01 Detection percentage 2018.png", width = 9, height = 12, dpi = 500)
 
 #
 # Make table
@@ -78,4 +78,4 @@ table_detect <- df_detect %>%
   spread(key = Sample_type, value = Detect_group)
 
 # Save
-openxlsx::write.xlsx(table_detect, "01 Deteksjonsfrekvens.xlsx")
+openxlsx::write.xlsx(table_detect, "01 Deteksjonsfrekvens 2018.xlsx")

@@ -162,6 +162,7 @@ ggplot(data_plot, aes(Year, value)) +
 
 ### b. Precipitation
 ```{r}
+
 x <- c(3780,18700,19710,30000,30260,36560,39040,43360,44080,
        46850,51250,57480,63530,66210,68270,78850,89350,93140,96970,99500)
 
@@ -172,7 +173,7 @@ not_ok <- result_list1 %>% map_lgl(is.null)
 mean(not_ok)   # Should be zero!
 
 result_list2 <- transpose(result_list1)$result  # Go down to 1st level of list
-result_prec <- transpose(result_list2)$result %>% bind_rows()
+result_prec <- transpose(result_list2)$statistics %>% bind_rows()
 
 result_prec
 
