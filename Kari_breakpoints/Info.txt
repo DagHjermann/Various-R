@@ -1,0 +1,24 @@
+From: Kari Austnes 
+Sent: tirsdag 10. november 2020 16.39
+To: Dag Øystein Hjermann <Dag.Hjermann@niva.no>
+Subject: Segmented
+
+Hei
+
+Jeg har prøvd meg litt fram med segmented-pakken for å se etter knekkpunkter. Trikset er funksjonen selgmented, ser det ut til, som leter etter antall fornuftig knekkpunkter. Jeg får til å lage en output som gir mening. Men – som vanlig – jeg ser at jeg ikke har tid til å knote med å prøve den på større skala, dvs. kjøre i loop på mange serier og samle opp den outputen jeg vil ha. Skulle tro det er veldig rett fram hvis man har dette i fingrene, men jeg bruker bare altfor lang tid. Så – hvis du stadig har kapasitet – kanskje du kunne hjelpe meg litt..? Ikke hvis det tar en to dager, men hvis vi snakker om bare en halv..
+
+Jeg kunne tenke meg å starte med en type fil som vedlagt. Den må gjøres om til langt format først. Og ser ut til at funksjonen ikke liker NA. Så er det noen valg med selgmented – tror du vet bedre enn meg hva som er enklest og tryggest, men det handler om lm vs glm og hvilken type kriterium man skal bruke. Ellers har jeg kommet langt med default, men mulig det kan taes bedre valg enn det
+
+Analysen må kjøres separat for de med seriesSpan long og short
+
+Så er det output. Den havner litt forskjellige steder etter hvilke valg man tar, men det jeg er interessert i (tror jeg) er hvor mange knekkpunkter, hvor de er, slope for de ulike delene og noe relevant statistisk output som R2 og kanskje std.err til knekkpunktene etc. Igjen vet vel du bedre enn meg hva som er lurt. Det kan listes per monitoringSiteIdentifier med tilhørende countryCode etc som i input-filen. Så kan jeg ta det derfra og prøve å oppsummere resultatene på en eller annen måte. Tanken min er å se om mange har knekkpunkt i samme periode, om det varierer mellom land e.l. Det kan være et tegn på at ny politikk er tatt i bruk f.eks.
+
+Dette trenger ikke være veldig raffinert – jeg skal bare komme med forslag til analyser som kan gjøres, ikke faktisk bruke dem i noe produkt. Men fint å kunne vise eksempelresultater for et større datasett, ikke bare resultater for enkeltstasjoner
+
+Supert hvis du har mulighet – hvis ikke får det bare være. Det er EEA-arbeid – vet ikke om du kan føre på tasker hvor du ikke står i AP? Dette er i hvert fall 200117, akt 1513
+
+Og bare spør hvis noe av dette var uklart
+
+Når det gjelder den andre saken må jeg bare vente på at James får litt overblikk. Det skjer tidligst i slutten av uka
+
+Kari
